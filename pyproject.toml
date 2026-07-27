@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "repo2prompt"
+version = "0.1.0"
+description = "Pack a repository into clean, AI-friendly context (directory tree + file contents + token stats)."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [{ name = "repo2prompt contributors" }]
+keywords = ["ai", "llm", "context", "prompt", "repository", "cli", "git", "rag"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Utilities",
+]
+dependencies = ["pathspec>=0.11"]
+
+[project.urls]
+Homepage = "https://github.com/YOUR_GITHUB_USERNAME/repo2prompt"
+Repository = "https://github.com/YOUR_GITHUB_USERNAME/repo2prompt"
+Issues = "https://github.com/YOUR_GITHUB_USERNAME/repo2prompt/issues"
+
+[project.scripts]
+repo2prompt = "repo2prompt.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
