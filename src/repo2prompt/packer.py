@@ -1,0 +1,272 @@
+"""Core packing logic for repo2prompt."""
+from __future__ import annotations
+
+import fnmatch
+import os
+from dataclasses import dataclass
+from pathlib import Path
+from typing import List, Optional
+
+from . import __version__
+from .gitignore import BINARY_EXTENSIONS, load_matcher
+from .tokens import TokenCounter
+from .tree import build_tree
+
+DEFAULT_MAX_TOKENS = 200_000
+DEFAULT_MAX_FILE_CHARS = 200_000
+
+
+@dataclass
+class FileEntry:
+    relpath: str
+    size: int
+    chars: int = 0
+    tokens: int = 0
+    content: str = ""
+    reason: str = ""  # non-empty => file was skipped
+
+
+@dataclass
+class PackResult:
+    root_name: str
+    root_path: str
+    tree: str
+    entries: List[FileEntry]
+    markdown: str
+    total_tokens: int
+    total_files: int
+    total_chars: int
+    included_tokens: int
+    included_chars: int
+    token_mode: str
+    truncated: bool = False
+
+
+LANG_MAP = {
+    ".py": "python", ".js": "javascript", ".ts": "typescript", ".jsx": "jsx",
+    ".tsx": "tsx", ".java": "java", ".go": "go", ".rs": "rust", ".c": "c",
+    ".h": "c", ".cpp": "cpp", ".cc": "cpp", ".hpp": "cpp", ".cs": "csharp",
+    ".rb": "ruby", ".php": "php", ".swift": "swift", ".kt": "kotlin",
+    ".scala": "scala", ".sh": "bash", ".bash": "bash", ".zsh": "bash",
+    ".yml": "yaml", ".yaml": "yaml", ".toml": "toml", ".ini": "ini",
+    ".cfg": "ini", ".json": "json", ".md": "markdown", ".rst": "rst",
+    ".txt": "text", ".html": "html", ".htm": "html", ".css": "css",
+    ".scss": "scss", ".less": "less", ".sql": "sql", ".xml": "xml",
+    ".vue": "vue", ".r": "r", ".m": "objectivec", ".lua": "lua",
+    ".pl": "perl", ".gradle": "groovy", ".mk": "makefile", ".make": "makefile",
+}
+
+
+def _lang_for(path: str) -> str:
+    lower = path.lower()
+    if lower.endswith("dockerfile"):
+        return "dockerfile"
+    return LANG_MAP.get(os.path.splitext(lower)[1], "")
+
+
+def _glob_match(value: str, pattern: str) -> bool:
+    return fnmatch.fnmatch(value, pattern) or fnmatch.fnmatch(
+        os.path.basename(value), pattern
+    )
+
+
+def collect_files(
+    root: Path,
+    matcher,
+    *,
+    include: Optional[List[str]] = None,
+    exclude: Optional[List[str]] = None,
+    max_file_chars: int = DEFAULT_MAX_FILE_CHARS,
+    respect_gitignore: bool = True,
+) -> List[FileEntry]:
+    entries: List[FileEntry] = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        rel_dir = os.path.relpath(dirpath, root)
+        rel_dir = "" if rel_dir == "." else rel_dir.replace(os.sep, "/")
+
+        kept = []
+        for d in sorted(dirnames):
+            drel = f"{rel_dir}/{d}" if rel_dir else d
+            if respect_gitignore and matcher.is_ignored(drel, is_dir=True):
+                continue
+            kept.append(d)
+        dirnames[:] = kept
+
+        for f in sorted(filenames):
+            frel = f"{rel_dir}/{f}" if rel_dir else f
+            if respect_gitignore and matcher.is_ignored(frel, is_dir=False):
+                entries.append(FileEntry(relpath=frel, size=Path(dirpath, f).stat().st_size,
+                                         reason="gitignored"))
+                continue
+            abspath = Path(dirpath) / f
+            size = abspath.stat().st_size
+            ext = os.path.splitext(f)[1].lower()
+            if ext in BINARY_EXTENSIONS:
+                entries.append(FileEntry(relpath=frel, size=size, reason="binary"))
+                continue
+            if include and not any(_glob_match(frel, p) for p in include):
+                entries.append(FileEntry(relpath=frel, size=size,
+                                         reason="not in --include"))
+                continue
+            if exclude and any(_glob_match(frel, p) for p in exclude):
+                entries.append(FileEntry(relpath=frel, size=size,
+                                         reason="excluded by --exclude"))
+                continue
+            try:
+                text = abspath.read_text(encoding="utf-8", errors="strict")
+            except (UnicodeDecodeError, OSError):
+                entries.append(FileEntry(relpath=frel, size=size,
+                                         reason="binary/non-utf8"))
+                continue
+            if len(text) > max_file_chars:
+                entries.append(FileEntry(relpath=frel, size=size,
+                                         reason=f"too large (>{max_file_chars} chars)"))
+                continue
+            entries.append(FileEntry(relpath=frel, size=size, chars=len(text),
+                                     content=text))
+    return entries
+
+
+def _render_markdown(
+    *,
+    root_name: str,
+    tree: str,
+    included: List[FileEntry],
+    skipped: List[FileEntry],
+    no_content: bool,
+    no_tree: bool,
+    total_files: int,
+    included_count: int,
+    total_tokens: int,
+    included_tokens: int,
+    token_mode: str,
+    truncated: bool,
+) -> str:
+    L: list = []
+    L.append(f"# Repository Context: `{root_name}`\n")
+    L.append(f"> Generated by **repo2prompt** v{__version__}  ")
+    L.append(
+        f"> Files included: **{included_count}/{total_files}** | "
+        f"Tokens (est): **{included_tokens:,}** included / {total_tokens:,} total  "
+    )
+    L.append(
+        f"> Token estimate mode: `{token_mode}`"
+        + (" — *approximate*" if token_mode == "chars" else "")
+    )
+    if truncated:
+        L.append("> ⚠️ Output truncated to fit `--max-tokens`. Some files omitted.")
+    L.append("")
+
+    if not no_tree:
+        L.append("## Directory Structure\n")
+        L.append("```text")
+        L.append(tree if tree.strip() else "(empty)")
+        L.append("```\n")
+
+    if not no_content:
+        L.append("## Files\n")
+        if included:
+            for e in included:
+                lang = _lang_for(e.relpath)
+                fence = f"```{lang}" if lang else "```"
+                L.append(f"### `{e.relpath}`\n")
+                L.append(f"> {e.size:,} bytes · ~{e.tokens:,} tokens\n")
+                L.append(fence)
+                L.append(e.content.rstrip("\n"))
+                L.append("```\n")
+        else:
+            L.append("_No files included._\n")
+
+    if skipped:
+        L.append("## Skipped Files\n")
+        L.append("| Path | Reason |")
+        L.append("| --- | --- |")
+        for e in skipped:
+            L.append(f"| `{e.relpath}` | {e.reason} |")
+        L.append("")
+
+    return "\n".join(L)
+
+
+def pack(
+    root,
+    *,
+    include: Optional[List[str]] = None,
+    exclude: Optional[List[str]] = None,
+    max_tokens: int = DEFAULT_MAX_TOKENS,
+    no_tree: bool = False,
+    no_content: bool = False,
+    respect_gitignore: bool = True,
+    token_model: str = "gpt-4o",
+    max_file_chars: int = DEFAULT_MAX_FILE_CHARS,
+) -> PackResult:
+    root = Path(root)
+    matcher = load_matcher(root, use_gitignore=respect_gitignore)
+    entries = collect_files(
+        root,
+        matcher,
+        include=include,
+        exclude=exclude,
+        max_file_chars=max_file_chars,
+        respect_gitignore=respect_gitignore,
+    )
+    counter = TokenCounter(token_model)
+
+    for e in entries:
+        if e.content:
+            e.tokens = counter.count(e.content)
+
+    total_chars = sum(e.chars for e in entries)
+    total_tokens = sum(e.tokens for e in entries)
+
+    included: List[FileEntry] = []
+    skipped: List[FileEntry] = []
+    budget = max_tokens if max_tokens and max_tokens > 0 else None
+    acc = 0
+    truncated = False
+    for e in entries:
+        if not e.content:
+            skipped.append(e)
+            continue
+        if budget is not None and acc + e.tokens > budget:
+            e.reason = f"exceeds --max-tokens budget ({budget:,})"
+            skipped.append(e)
+            truncated = True
+            continue
+        included.append(e)
+        acc += e.tokens
+
+    included_tokens = sum(e.tokens for e in included)
+    included_chars = sum(e.chars for e in included)
+
+    tree = "" if no_tree else build_tree([e.relpath for e in entries])
+
+    markdown = _render_markdown(
+        root_name=root.name or str(root),
+        tree=tree,
+        included=included,
+        skipped=skipped,
+        no_content=no_content,
+        no_tree=no_tree,
+        total_files=len(entries),
+        included_count=len(included),
+        total_tokens=total_tokens,
+        included_tokens=included_tokens,
+        token_mode=counter.mode(),
+        truncated=truncated,
+    )
+
+    return PackResult(
+        root_name=root.name or str(root),
+        root_path=str(root.resolve()),
+        tree=tree,
+        entries=entries,
+        markdown=markdown,
+        total_tokens=total_tokens,
+        total_files=len(entries),
+        total_chars=total_chars,
+        included_tokens=included_tokens,
+        included_chars=included_chars,
+        token_mode=counter.mode(),
+        truncated=truncated,
+    )
