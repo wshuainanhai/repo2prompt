@@ -5,7 +5,7 @@
 [![PyPI version](https://img.shields.io/pypi/v/repo2prompt.svg)](https://pypi.org/project/repo2prompt/)
 [![Python versions](https://img.shields.io/pypi/pyversions/repo2prompt.svg)](https://pypi.org/project/repo2prompt/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![GitHub stars](https://img.shields.io/github/stars/YOUR_GITHUB_USERNAME/repo2prompt?style=social)](https://github.com/YOUR_GITHUB_USERNAME/repo2prompt)
+[![GitHub stars](https://img.shields.io/github/stars/wshuainanhai/repo2prompt?style=social)](https://github.com/wshuainanhai/repo2prompt)
 
 **repo2prompt** 是一个零配置的命令行工具：读你的项目目录，自动生成一份 Markdown 文档，包含**目录树 + 每个文件的内容 + Token 估算**，并自动跳过 `.gitignore`、二进制文件和大文件。把这份文档丢给 Claude / ChatGPT / Gemini，就能让它「看懂」整个仓库，用来写 README、做 code review、生成 RAG 知识库、做需求分析都超好用。
 
@@ -33,7 +33,7 @@ pip install repo2prompt
 或从源码安装（可编辑模式，方便开发）：
 
 ```bash
-git clone https://github.com/YOUR_GITHUB_USERNAME/repo2prompt.git
+git clone https://github.com/wshuainanhai/repo2prompt.git
 cd repo2prompt
 pip install -e .
 ```
