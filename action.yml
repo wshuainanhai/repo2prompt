@@ -1,0 +1,91 @@
+name: "📦 repo2prompt"
+author: "wshuainanhai"
+description: |
+  Pack any repository into clean, AI-friendly context.
+  Generates a Markdown document with directory tree + file contents + token estimation.
+  Supports .gitignore, binary files, oversized file filtering, and flexible include/exclude globs.
+
+branding:
+  icon: "package"
+  color: "blue"
+
+inputs:
+  root:
+    description: "Repository root to scan (default: .)"
+    required: false
+    default: "."
+  output:
+    description: "Output filename (default: repo-context.md)"
+    required: false
+    default: "repo-context.md"
+  include:
+    description: "Comma-separated include globs (e.g. '*.py,*.yaml')"
+    required: false
+    default: ""
+  exclude:
+    description: "Comma-separated exclude globs (e.g. '*.pyc,__pycache__')"
+    required: false
+    default: ""
+  max_tokens:
+    description: "Soft max token limit (default: 10000)"
+    required: false
+    default: "10000"
+  lang:
+    description: "CLI language — en/zh/ja/ko/fr/de (default: en)"
+    required: false
+    default: "en"
+  no_tree:
+    description: "Skip directory tree section"
+    required: false
+    default: "false"
+  no_content:
+    description: "Skip file contents (tree only)"
+    required: false
+    default: "false"
+  no_gitignore:
+    description: "Do not respect .gitignore files"
+    required: false
+    default: "false"
+  json:
+    description: "Output machine-readable JSON summary"
+    required: false
+    default: "false"
+
+outputs:
+  output-path:
+    description: "Path to the generated output file"
+    value: ${{ steps.run.outputs.output-path }}
+  output-size:
+    description: "Size of the output file in bytes"
+    value: ${{ steps.run.outputs.output-size }}
+
+runs:
+  using: "docker"
+  image: "Dockerfile"
+  args:
+    - --root
+    - ${{ inputs.root }}
+    - --output
+    - ${{ inputs.output }}
+    - --include
+    - ${{ inputs.include }}
+    - --exclude
+    - ${{ inputs.exclude }}
+    - --max-tokens
+    - ${{ inputs.max_tokens }}
+    - --lang
+    - ${{ inputs.lang }}
+    - --no-tree
+    - ${{ inputs.no_tree }}
+    - --no-content
+    - ${{ inputs.no_content }}
+    - --no-gitignore
+    - ${{ inputs.no_gitignore }}
+    - --json
+    - ${{ inputs.json }}
+
+brand: |
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+    <rect width="32" height="32" rx="6" fill="#238636"/>
+    <path d="M8 10h16M8 16h12M8 22h8" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+  </svg>

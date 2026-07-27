@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "repo2prompt"
-version = "0.1.0"
+version = "0.2.0"
 description = "Pack a repository into clean, AI-friendly context (directory tree + file contents + token stats)."
 readme = "README.md"
 requires-python = ">=3.8"
@@ -23,12 +23,27 @@ classifiers = [
 dependencies = ["pathspec>=0.11"]
 
 [project.urls]
-Homepage = "https://github.com/YOUR_GITHUB_USERNAME/repo2prompt"
-Repository = "https://github.com/YOUR_GITHUB_USERNAME/repo2prompt"
-Issues = "https://github.com/YOUR_GITHUB_USERNAME/repo2prompt/issues"
+Homepage = "https://github.com/wshuainanhai/repo2prompt"
+Repository = "https://github.com/wshuainanhai/repo2prompt"
+Issues = "https://github.com/wshuainanhai/repo2prompt/issues"
 
 [project.scripts]
 repo2prompt = "repo2prompt.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.bandit]
+targets = ["src"]
+exclude = ["tests"]

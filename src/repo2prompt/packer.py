@@ -4,11 +4,12 @@ from __future__ import annotations
 import fnmatch
 import os
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePath
 from typing import List, Optional
 
 from . import __version__
 from .gitignore import BINARY_EXTENSIONS, load_matcher
+from .languages import detect_language, fenced
 from .tokens import TokenCounter
 from .tree import build_tree
 
@@ -42,26 +43,7 @@ class PackResult:
     truncated: bool = False
 
 
-LANG_MAP = {
-    ".py": "python", ".js": "javascript", ".ts": "typescript", ".jsx": "jsx",
-    ".tsx": "tsx", ".java": "java", ".go": "go", ".rs": "rust", ".c": "c",
-    ".h": "c", ".cpp": "cpp", ".cc": "cpp", ".hpp": "cpp", ".cs": "csharp",
-    ".rb": "ruby", ".php": "php", ".swift": "swift", ".kt": "kotlin",
-    ".scala": "scala", ".sh": "bash", ".bash": "bash", ".zsh": "bash",
-    ".yml": "yaml", ".yaml": "yaml", ".toml": "toml", ".ini": "ini",
-    ".cfg": "ini", ".json": "json", ".md": "markdown", ".rst": "rst",
-    ".txt": "text", ".html": "html", ".htm": "html", ".css": "css",
-    ".scss": "scss", ".less": "less", ".sql": "sql", ".xml": "xml",
-    ".vue": "vue", ".r": "r", ".m": "objectivec", ".lua": "lua",
-    ".pl": "perl", ".gradle": "groovy", ".mk": "makefile", ".make": "makefile",
-}
 
-
-def _lang_for(path: str) -> str:
-    lower = path.lower()
-    if lower.endswith("dockerfile"):
-        return "dockerfile"
-    return LANG_MAP.get(os.path.splitext(lower)[1], "")
 
 
 def _glob_match(value: str, pattern: str) -> bool:
@@ -167,8 +149,8 @@ def _render_markdown(
         L.append("## Files\n")
         if included:
             for e in included:
-                lang = _lang_for(e.relpath)
-                fence = f"```{lang}" if lang else "```"
+                lang = detect_language(PurePath(e.relpath))
+                fence = f"```{fenced(lang, e.relpath)}" if lang or e.relpath else "```"
                 L.append(f"### `{e.relpath}`\n")
                 L.append(f"> {e.size:,} bytes · ~{e.tokens:,} tokens\n")
                 L.append(fence)
