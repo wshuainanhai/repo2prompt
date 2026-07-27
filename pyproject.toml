@@ -23,9 +23,9 @@ classifiers = [
 dependencies = ["pathspec>=0.11"]
 
 [project.urls]
-Homepage = "https://github.com/YOUR_GITHUB_USERNAME/repo2prompt"
-Repository = "https://github.com/YOUR_GITHUB_USERNAME/repo2prompt"
-Issues = "https://github.com/YOUR_GITHUB_USERNAME/repo2prompt/issues"
+Homepage = "https://github.com/wshuainanhai/repo2prompt"
+Repository = "https://github.com/wshuainanhai/repo2prompt"
+Issues = "https://github.com/wshuainanhai/repo2prompt/issues"
 
 [project.scripts]
 repo2prompt = "repo2prompt.cli:main"
