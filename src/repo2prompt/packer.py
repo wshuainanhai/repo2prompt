@@ -1,11 +1,11 @@
 """Core packing logic for repo2prompt."""
+
 from __future__ import annotations
 
 import fnmatch
 import os
 from dataclasses import dataclass
 from pathlib import Path, PurePath
-from typing import List, Optional
 
 from . import __version__
 from .gitignore import BINARY_EXTENSIONS, load_matcher
@@ -32,7 +32,7 @@ class PackResult:
     root_name: str
     root_path: str
     tree: str
-    entries: List[FileEntry]
+    entries: list[FileEntry]
     markdown: str
     total_tokens: int
     total_files: int
@@ -43,25 +43,20 @@ class PackResult:
     truncated: bool = False
 
 
-
-
-
 def _glob_match(value: str, pattern: str) -> bool:
-    return fnmatch.fnmatch(value, pattern) or fnmatch.fnmatch(
-        os.path.basename(value), pattern
-    )
+    return fnmatch.fnmatch(value, pattern) or fnmatch.fnmatch(os.path.basename(value), pattern)
 
 
 def collect_files(
     root: Path,
     matcher,
     *,
-    include: Optional[List[str]] = None,
-    exclude: Optional[List[str]] = None,
+    include: list[str] | None = None,
+    exclude: list[str] | None = None,
     max_file_chars: int = DEFAULT_MAX_FILE_CHARS,
     respect_gitignore: bool = True,
-) -> List[FileEntry]:
-    entries: List[FileEntry] = []
+) -> list[FileEntry]:
+    entries: list[FileEntry] = []
     for dirpath, dirnames, filenames in os.walk(root):
         rel_dir = os.path.relpath(dirpath, root)
         rel_dir = "" if rel_dir == "." else rel_dir.replace(os.sep, "/")
@@ -77,8 +72,11 @@ def collect_files(
         for f in sorted(filenames):
             frel = f"{rel_dir}/{f}" if rel_dir else f
             if respect_gitignore and matcher.is_ignored(frel, is_dir=False):
-                entries.append(FileEntry(relpath=frel, size=Path(dirpath, f).stat().st_size,
-                                         reason="gitignored"))
+                entries.append(
+                    FileEntry(
+                        relpath=frel, size=Path(dirpath, f).stat().st_size, reason="gitignored"
+                    )
+                )
                 continue
             abspath = Path(dirpath) / f
             size = abspath.stat().st_size
@@ -87,25 +85,24 @@ def collect_files(
                 entries.append(FileEntry(relpath=frel, size=size, reason="binary"))
                 continue
             if include and not any(_glob_match(frel, p) for p in include):
-                entries.append(FileEntry(relpath=frel, size=size,
-                                         reason="not in --include"))
+                entries.append(FileEntry(relpath=frel, size=size, reason="not in --include"))
                 continue
             if exclude and any(_glob_match(frel, p) for p in exclude):
-                entries.append(FileEntry(relpath=frel, size=size,
-                                         reason="excluded by --exclude"))
+                entries.append(FileEntry(relpath=frel, size=size, reason="excluded by --exclude"))
                 continue
             try:
                 text = abspath.read_text(encoding="utf-8", errors="strict")
             except (UnicodeDecodeError, OSError):
-                entries.append(FileEntry(relpath=frel, size=size,
-                                         reason="binary/non-utf8"))
+                entries.append(FileEntry(relpath=frel, size=size, reason="binary/non-utf8"))
                 continue
             if len(text) > max_file_chars:
-                entries.append(FileEntry(relpath=frel, size=size,
-                                         reason=f"too large (>{max_file_chars} chars)"))
+                entries.append(
+                    FileEntry(
+                        relpath=frel, size=size, reason=f"too large (>{max_file_chars} chars)"
+                    )
+                )
                 continue
-            entries.append(FileEntry(relpath=frel, size=size, chars=len(text),
-                                     content=text))
+            entries.append(FileEntry(relpath=frel, size=size, chars=len(text), content=text))
     return entries
 
 
@@ -113,8 +110,8 @@ def _render_markdown(
     *,
     root_name: str,
     tree: str,
-    included: List[FileEntry],
-    skipped: List[FileEntry],
+    included: list[FileEntry],
+    skipped: list[FileEntry],
     no_content: bool,
     no_tree: bool,
     total_files: int,
@@ -173,8 +170,8 @@ def _render_markdown(
 def pack(
     root,
     *,
-    include: Optional[List[str]] = None,
-    exclude: Optional[List[str]] = None,
+    include: list[str] | None = None,
+    exclude: list[str] | None = None,
     max_tokens: int = DEFAULT_MAX_TOKENS,
     no_tree: bool = False,
     no_content: bool = False,
@@ -201,8 +198,8 @@ def pack(
     total_chars = sum(e.chars for e in entries)
     total_tokens = sum(e.tokens for e in entries)
 
-    included: List[FileEntry] = []
-    skipped: List[FileEntry] = []
+    included: list[FileEntry] = []
+    skipped: list[FileEntry] = []
     budget = max_tokens if max_tokens and max_tokens > 0 else None
     acc = 0
     truncated = False

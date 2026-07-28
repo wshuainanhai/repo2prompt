@@ -178,6 +178,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
+
 def _detect_lang() -> str:
     """Detect language from environment, returning a supported lang or 'en'."""
     for var in LANG_ENV_VARS:
@@ -197,6 +198,7 @@ def _detect_lang() -> str:
 # Module-level singleton
 _current_lang: str | None = None
 
+
 def t(key: str) -> str:
     """Translate key into current language, falling back to English."""
     global _current_lang
@@ -205,6 +207,7 @@ def t(key: str) -> str:
     return TRANSLATIONS.get(_current_lang, TRANSLATIONS[DEFAULT_LANG]).get(
         key, TRANSLATIONS[DEFAULT_LANG].get(key, key)
     )
+
 
 def set_lang(lang: str) -> None:
     """Force the current language (e.g. from CLI --lang flag)."""

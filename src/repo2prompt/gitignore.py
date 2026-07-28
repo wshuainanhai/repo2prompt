@@ -3,14 +3,14 @@
 Uses `pathspec` when available (full gitwildmatch fidelity) and falls back to a
 small built-in matcher so the tool still works with zero dependencies.
 """
+
 from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import List, Optional
 
 # Common junk that should be skipped even without a .gitignore present.
-DEFAULT_IGNORE: List[str] = [
+DEFAULT_IGNORE: list[str] = [
     ".git",
     "__pycache__",
     "node_modules",
@@ -32,18 +32,56 @@ DEFAULT_IGNORE: List[str] = [
 
 # Extensions we never read (treated as binary).
 BINARY_EXTENSIONS = {
-    ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico", ".webp", ".avif",
-    ".pdf", ".zip", ".gz", ".tar", ".tgz", ".rar", ".7z", ".bz2",
-    ".exe", ".dll", ".so", ".dylib", ".bin", ".o", ".obj",
-    ".woff", ".woff2", ".ttf", ".eot", ".otf",
-    ".mp4", ".mp3", ".wav", ".mov", ".avi", ".mkv", ".flac", ".m4a",
-    ".pyc", ".pyo", ".class", ".db", ".sqlite", ".sqlite3",
-    ".wasm", ".rlib", ".a",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".bmp",
+    ".ico",
+    ".webp",
+    ".avif",
+    ".pdf",
+    ".zip",
+    ".gz",
+    ".tar",
+    ".tgz",
+    ".rar",
+    ".7z",
+    ".bz2",
+    ".exe",
+    ".dll",
+    ".so",
+    ".dylib",
+    ".bin",
+    ".o",
+    ".obj",
+    ".woff",
+    ".woff2",
+    ".ttf",
+    ".eot",
+    ".otf",
+    ".mp4",
+    ".mp3",
+    ".wav",
+    ".mov",
+    ".avi",
+    ".mkv",
+    ".flac",
+    ".m4a",
+    ".pyc",
+    ".pyo",
+    ".class",
+    ".db",
+    ".sqlite",
+    ".sqlite3",
+    ".wasm",
+    ".rlib",
+    ".a",
 }
 
 
 def _glob_to_regex(pat: str) -> str:
-    out: List[str] = []
+    out: list[str] = []
     i = 0
     while i < len(pat):
         c = pat[i]
@@ -67,7 +105,7 @@ def _glob_to_regex(pat: str) -> str:
 class PathSpecMatcher:
     """Matcher backed by pathspec (preferred)."""
 
-    def __init__(self, patterns: List[str]):
+    def __init__(self, patterns: list[str]):
         import pathspec  # imported lazily; only when available
 
         self.spec = pathspec.PathSpec.from_lines("gitignore", patterns)
@@ -82,8 +120,8 @@ class PathSpecMatcher:
 class FallbackMatcher:
     """Minimal gitwildmatch matcher used when pathspec is unavailable."""
 
-    def __init__(self, patterns: List[str]):
-        self.rules: List[tuple] = []
+    def __init__(self, patterns: list[str]):
+        self.rules: list[tuple] = []
         for raw in patterns:
             raw = raw.strip()
             if not raw or raw.startswith("#"):
@@ -125,7 +163,7 @@ class FallbackMatcher:
 
 def load_matcher(root, use_gitignore: bool = True):
     """Build a matcher from DEFAULT_IGNORE plus the repo's .gitignore."""
-    patterns: List[str] = list(DEFAULT_IGNORE)
+    patterns: list[str] = list(DEFAULT_IGNORE)
     if use_gitignore:
         gi = Path(root) / ".gitignore"
         if gi.is_file():

@@ -33,9 +33,7 @@ def test_pack_include_filter(tmp_path):
     _make_repo(tmp_path)
     res = pack(tmp_path, include=["*.py"])
     assert any(e.relpath.endswith(".py") for e in res.entries if e.content)
-    assert all(
-        (e.relpath.endswith(".py") or not e.content) for e in res.entries
-    )
+    assert all((e.relpath.endswith(".py") or not e.content) for e in res.entries)
 
 
 def test_pack_exclude_and_tree(tmp_path):

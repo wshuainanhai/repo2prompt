@@ -1,4 +1,5 @@
 """Directory-tree rendering for repo2prompt."""
+
 from __future__ import annotations
 
 

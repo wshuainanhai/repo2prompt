@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from repo2prompt.gitignore import load_matcher
 
 

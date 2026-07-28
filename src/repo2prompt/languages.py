@@ -7,17 +7,18 @@ extensions-based detection.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import PurePath
-import re
 
 # ── types ─────────────────────────────────────────────────────────────────────
 
+
 @dataclass(frozen=True, slots=True)
 class Language:
-    name: str          # display name
-    extensions: tuple[str, ...]   # e.g. (".py",)
-    patterns: tuple[str, ...]     # regex patterns for filename matching
+    name: str  # display name
+    extensions: tuple[str, ...]  # e.g. (".py",)
+    patterns: tuple[str, ...]  # regex patterns for filename matching
     single_comment: str = "#"
     multi_comment_start: str = '"""'
     multi_comment_end: str = '"""'
@@ -25,10 +26,10 @@ class Language:
 
     def match(self, path: PurePath) -> bool:
         name = path.name.lower()
-        return (
-            any(name.endswith(ext) for ext in self.extensions)
-            or any(re.match(pat, name) for pat in self.patterns)
+        return any(name.endswith(ext) for ext in self.extensions) or any(
+            re.match(pat, name) for pat in self.patterns
         )
+
 
 # ── language registry ──────────────────────────────────────────────────────────
 
@@ -125,9 +126,14 @@ LANGUAGES: list[Language] = [
         name="JSON",
         extensions=(".json", ".jsonc", ".jsonl"),
         patterns=(
-            "^tsconfig.*\\.json$", "^package\\.json$", "^\\.eslintrc.*$",
-            "^\\.prettierrc.*$", "^\\.stylelintrc.*$", "^vetur\\.db\\.json$",
-            "^deno\\.json.*$", "^ import\\.map$",
+            "^tsconfig.*\\.json$",
+            "^package\\.json$",
+            "^\\.eslintrc.*$",
+            "^\\.prettierrc.*$",
+            "^\\.stylelintrc.*$",
+            "^vetur\\.db\\.json$",
+            "^deno\\.json.*$",
+            "^ import\\.map$",
         ),
         single_comment="",
         multi_comment_start="",
@@ -138,8 +144,12 @@ LANGUAGES: list[Language] = [
         name="YAML",
         extensions=(".yaml", ".yml"),
         patterns=(
-            "^\\.github/", "^docker-compose", "^Makefile$",
-            "^\\.gitlab-ci\\.yml$", "^\\.circleci/", "^\\.pre-commit-config\\.yaml$",
+            "^\\.github/",
+            "^docker-compose",
+            "^Makefile$",
+            "^\\.gitlab-ci\\.yml$",
+            "^\\.circleci/",
+            "^\\.pre-commit-config\\.yaml$",
         ),
         single_comment="#",
         multi_comment_start="",
@@ -292,8 +302,15 @@ LANGUAGES: list[Language] = [
     Language(
         name="Shell",
         extensions=(".sh", ".bash", ".zsh", ".fish", ".ksh", ".ash"),
-        patterns=("^Makefile$", "^\\.bashrc$", "^\\.zshrc$", "^\\.profile$",
-                  "^entrypoint\\.sh$", "^start\\.sh$", "^run\\.sh$"),
+        patterns=(
+            "^Makefile$",
+            "^\\.bashrc$",
+            "^\\.zshrc$",
+            "^\\.profile$",
+            "^entrypoint\\.sh$",
+            "^start\\.sh$",
+            "^run\\.sh$",
+        ),
         single_comment="#",
         multi_comment_start="",
         multi_comment_end="",
@@ -335,8 +352,8 @@ LANGUAGES: list[Language] = [
         extensions=(".jl",),
         patterns=(),
         single_comment="#",
-        multi_comment_start="\"\"\"",
-        multi_comment_end="\"\"\"",
+        multi_comment_start='"""',
+        multi_comment_end='"""',
     ),
     Language(
         name="Lua",
@@ -397,8 +414,7 @@ LANGUAGES: list[Language] = [
     Language(
         name="Dockerfile",
         extensions=(),
-        patterns=("^Dockerfile$", "^\\.dockerignore$",
-                  "^docker-compose.*\\.ya?ml$"),
+        patterns=("^Dockerfile$", "^\\.dockerignore$", "^docker-compose.*\\.ya?ml$"),
         single_comment="#",
         multi_comment_start="",
         multi_comment_end="",
@@ -408,8 +424,8 @@ LANGUAGES: list[Language] = [
         extensions=(".graphql", ".gql"),
         patterns=(),
         single_comment="#",
-        multi_comment_start="\"\"\"",
-        multi_comment_end="\"\"\"",
+        multi_comment_start='"""',
+        multi_comment_end='"""',
     ),
     Language(
         name="XML",
@@ -430,8 +446,16 @@ LANGUAGES: list[Language] = [
     Language(
         name="Plain Text",
         extensions=(".txt",),
-        patterns=("^README", "^LICENSE", "^CHANGELOG", "^AUTHORS", "^NOTICE",
-                  "^CONTRIBUTING", "^SECURITY", "^Code\\ of\\ Conduct"),
+        patterns=(
+            "^README",
+            "^LICENSE",
+            "^CHANGELOG",
+            "^AUTHORS",
+            "^NOTICE",
+            "^CONTRIBUTING",
+            "^SECURITY",
+            "^Code\\ of\\ Conduct",
+        ),
         single_comment="",
         multi_comment_start="",
         multi_comment_end="",
@@ -441,12 +465,14 @@ LANGUAGES: list[Language] = [
 
 # ── detection API ─────────────────────────────────────────────────────────────
 
+
 def detect_language(path: PurePath) -> Language | None:
     """Return the best-matching Language for a file path, or None."""
     candidates = [lang for lang in LANGUAGES if lang.match(path)]
     # Prefer languages with extensions over those with only patterns (less specific)
     by_ext = [c for c in candidates if c.extensions]
     return by_ext[0] if by_ext else (candidates[0] if candidates else None)
+
 
 def fenced(lang: Language | None, path_str: str = "") -> str:
     """Return the best fence label for a language (try common aliases)."""
@@ -474,9 +500,12 @@ def fenced(lang: Language | None, path_str: str = "") -> str:
     }.get(lang.name, lang.name.lower().replace(" ", "-"))
     return alias
 
+
 def _ext_fence(path_str: str) -> str:
     import os
+
     _, ext = os.path.splitext(path_str)
     return ext.lstrip(".") if ext else "text"
+
 
 # Total languages: 49

@@ -1,7 +1,9 @@
 """Command-line interface for repo2prompt."""
+
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import sys
 from pathlib import Path
@@ -17,44 +19,29 @@ def build_parser() -> argparse.ArgumentParser:
         description="Pack a repository into clean, AI-friendly context "
         "(directory tree + file contents + token stats).",
     )
-    p.add_argument("path", nargs="?", default=".",
-                   help=t("arg_root"))
-    p.add_argument("-o", "--output",
-                   help=t("opt_output"))
-    p.add_argument("-i", "--include", action="append", metavar="GLOB",
-                   help=t("opt_include"))
-    p.add_argument("-x", "--exclude", action="append", metavar="GLOB",
-                   help=t("opt_exclude"))
-    p.add_argument("--no-gitignore", action="store_true",
-                   help=t("opt_no_gitignore"))
-    p.add_argument("--no-tree", action="store_true",
-                   help=t("opt_no_tree"))
-    p.add_argument("--no-content", action="store_true",
-                   help=t("opt_no_content"))
-    p.add_argument("--max-tokens", type=int, default=DEFAULT_MAX_TOKENS,
-                   help=t("opt_max_tokens"))
-    p.add_argument("--max-file-chars", type=int, default=200_000,
-                   help="Skip files larger than this many chars")
-    p.add_argument("--model", default="gpt-4o",
-                   help=t("opt_model"))
-    p.add_argument("--copy", action="store_true",
-                   help=t("opt_copy"))
-    p.add_argument("--json", action="store_true",
-                   help=t("opt_json"))
-    p.add_argument("--list", action="store_true",
-                   help=t("opt_list"))
-    p.add_argument("-v", "--version", action="version",
-                   version=f"repo2prompt {__version__}")
-    p.add_argument("--lang",
-                   help=t("opt_lang_choices") + " (env: R2P_LANG)")
+    p.add_argument("path", nargs="?", default=".", help=t("arg_root"))
+    p.add_argument("-o", "--output", help=t("opt_output"))
+    p.add_argument("-i", "--include", action="append", metavar="GLOB", help=t("opt_include"))
+    p.add_argument("-x", "--exclude", action="append", metavar="GLOB", help=t("opt_exclude"))
+    p.add_argument("--no-gitignore", action="store_true", help=t("opt_no_gitignore"))
+    p.add_argument("--no-tree", action="store_true", help=t("opt_no_tree"))
+    p.add_argument("--no-content", action="store_true", help=t("opt_no_content"))
+    p.add_argument("--max-tokens", type=int, default=DEFAULT_MAX_TOKENS, help=t("opt_max_tokens"))
+    p.add_argument(
+        "--max-file-chars", type=int, default=200_000, help="Skip files larger than this many chars"
+    )
+    p.add_argument("--model", default="gpt-4o", help=t("opt_model"))
+    p.add_argument("--copy", action="store_true", help=t("opt_copy"))
+    p.add_argument("--json", action="store_true", help=t("opt_json"))
+    p.add_argument("--list", action="store_true", help=t("opt_list"))
+    p.add_argument("-v", "--version", action="version", version=f"repo2prompt {__version__}")
+    p.add_argument("--lang", help=t("opt_lang_choices") + " (env: R2P_LANG)")
     return p
 
 
 def _write_stdout(text):
-    try:
+    with contextlib.suppress(Exception):
         sys.stdout.reconfigure(encoding="utf-8")
-    except Exception:
-        pass
     try:
         sys.stdout.write(text)
         if not text.endswith("\n"):
@@ -68,8 +55,8 @@ def _write_stdout(text):
 def main(argv=None) -> int:
     args = build_parser().parse_args(argv)
     try:
-        sys.stdout.reconfigure(encoding="utf-8")
-        sys.stderr.reconfigure(encoding="utf-8")
+        sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
+        sys.stderr.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
     except Exception:
         pass
     if args.lang:
@@ -97,9 +84,7 @@ def main(argv=None) -> int:
         stats = {
             "root": result.root_path,
             "total_files": len(result.entries),
-            "included_files": sum(
-                1 for e in result.entries if e.content and not e.reason
-            ),
+            "included_files": sum(1 for e in result.entries if e.content and not e.reason),
             "total_tokens": result.total_tokens,
             "included_tokens": result.included_tokens,
             "token_mode": result.token_mode,
