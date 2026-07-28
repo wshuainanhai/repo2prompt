@@ -130,7 +130,7 @@ def _render_markdown(
     )
     L.append(
         f"> Token estimate mode: `{token_mode}`"
-        + (" — *approximate*" if token_mode == "chars" else "")
+        + (" — *approximate*" if token_mode == "chars" else "")  # nosec B105
     )
     if truncated:
         L.append("> ⚠️ Output truncated to fit `--max-tokens`. Some files omitted.")
