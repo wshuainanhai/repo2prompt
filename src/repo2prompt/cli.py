@@ -40,7 +40,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _write_stdout(text):
-    with contextlib.suppress(Exception):
+    with contextlib.suppress(Exception):  # nosec B110
         sys.stdout.reconfigure(encoding="utf-8")
     try:
         sys.stdout.write(text)
@@ -54,11 +54,9 @@ def _write_stdout(text):
 
 def main(argv=None) -> int:
     args = build_parser().parse_args(argv)
-    try:
+    with contextlib.suppress(Exception):  # nosec B110
         sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
         sys.stderr.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
-    except Exception:
-        pass
     if args.lang:
         set_lang(args.lang)
 
